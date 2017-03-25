@@ -27,21 +27,15 @@ class MyState(object):
         return Vector2D(0,GAME_HEIGHT/2.)
         
     def peut_tirer(self):
-        if ( self.dist_ball() ).norm >= PLAYER_RADIUS + BALL_RADIUS :
-            return False
-        return True
-    
-    #def but1(self):
-    #    if (self.key[0]==1):
-            
-    
+        return self.state.player_state(self.key[0], self.key[1]).can_shoot()
+        
     def defense_zone(self):
         if (self.key[0]==1):
-            if (self.state.ball.position.x < 50 and self.state.ball.position.y < 80 and self.state.ball.position.y > 10):
+            if (self.state.ball.position.x < 40 and self.state.ball.position.y < 80 and self.state.ball.position.y > 10):
                 return True
             return False
         if (self.key[0]==2):
-            if (self.state.ball.position.x > GAME_WIDTH-50 and self.state.ball.position.y < 80 and self.state.ball.position.y > 10):
+            if (self.state.ball.position.x > GAME_WIDTH-40 and self.state.ball.position.y < 80 and self.state.ball.position.y > 10):
                 return True        
             return False
             
@@ -54,6 +48,14 @@ class MyState(object):
             if (self.state.ball.position.x > GAME_WIDTH-30 and self.state.ball.position.y < 70 and self.state.ball.position.y > 20):
                 return True        
             return False
+                
+    def ball_zone(self):
+        if (self.state.player_state(self.key[0], self.key[1]).position.x< self.state.ball.position.x+10 and
+        self.state.player_state(self.key[0], self.key[1]).position.x> self.state.ball.position.x-10 and 
+        self.state.player_state(self.key[0], self.key[1]).position.y< self.state.ball.position.y+10 and
+        self.state.player_state(self.key[0], self.key[1]).position.y> self.state.ball.position.y-10 ):
+            return True 
+        return False 
     
     def coequipier_position(self, p):
         return p.my_position 
@@ -61,68 +63,11 @@ class MyState(object):
     def temps_shoot(self):
         temps_de_shoot = self.state.step
         return temps_de_shoot
-        
-class Zone (object):
-    
-    def __init__(self,mystate):
-        self.MyState = mystate
-        
-    def attaque_zone(self):
-        if (self.key[0]==2):
-            if (self.state.ball.position.x < 30 and self.state.ball.position.y < 70 and self.state.ball.position.y > 20):
-                return True
-            return False
-        if (self.key[0]==1):
-            if (self.state.ball.position.x > GAME_WIDTH-30 and self.state.ball.position.y < 70 and self.state.ball.position.y > 20):
-                return True
-            return False
-            
-    #def mini_zone(self,p):
-            
-    def ball_zone(self):
-        if (self.state.player_state(self.key[0], self.key[1]).position.x< self.state.ball.position.x+10 and
-        self.state.player_state(self.key[0], self.key[1]).position.x> self.state.ball.position.x-10 and
-        self.state.player_state(self.key[0], self.key[1]).position.y< self.state.ball.position.y+10 and
-        self.state.player_state(self.key[0], self.key[1]).position.y> self.state.ball.position.y-10 ):
-            return True
-        return False
-        
-    def cases(self,nucase):
-        k=1
-        while(k<=10):
-            if (nucase>=1+(k-1)*10 and nucase<=k*10):
-                j=k
-                k+=1
-                k=1
-        while (k<=10):
-            if ((nucase-k)%10==0):
-                        i=k
-                        k+=1
-        if (self.state.player_state(self.key[0],self.key[1]).position.x<15*i and
-        self.state.player_state(self.key[0],self.key[1]).position.x>=15(i-1) and
-        self.state.player_state(self.key[0],self.key[1]).position.y<9*j and
-        self.state.player_state(self.key[0],self.key[1]).position.y>=9*(j-1)):
-            return True
-        return False
-        
-    def defense_zone(self):
-        if (self.key[0]==1):
-            if (self.state.ball.position.x < 40):
-                return True
-            return False
-        if (self.key[0]==2):
-            if (self.state.ball.position.x > GAME_WIDTH-40):
-                return True
-            return False
-            
-    def __getattr__(self, name):
-        return getattr(self.MyState, name)
             
 
 class Action(object):
-    
-    def __init__(self,zone):
-        self.Zone = zone
+    def __init__(self,mystate):
+        self.MyState = mystate
         
     def aller_vers(self, p):
         return SoccerAction(p-self.my_position(),Vector2D())
@@ -144,7 +89,7 @@ class Action(object):
 
             
     def __getattr__(self, name):
-        return getattr(self.Zone, name)
+        return getattr(self.MyState, name)
         
         
 class Techniques(object):
@@ -152,17 +97,20 @@ class Techniques(object):
     def __init__(self, action):
         self.Action = action
         
+    def norm(self,b,j):
+        return math.sqrt(((self.state.b.x-self.state.j.x)*(self.state.b.x-self.state.j.x))+((self.state.b.y-self.state.j.y)*(self.state.b.y-self.state.j.y)))
+    
     def aller_vers_ball_def(self, ball_position):
-        if(self.ball_zone()):
-            return self.marcher_vers(self.ball_position()+self.state.ball.vitesse*7)
-        return self.aller_vers(self.ball_position()+self.state.ball.vitesse*5)
+#        if(self.ball_zone()):
+#            return self.marcher_vers(self.ball_position()+self.state.ball.vitesse*7)
+        return self.aller_vers(self.ball_position()+self.state.ball.vitesse*7)
         
     def aller_vers_ball_att(self, ball_position):
         if(self.defense_zone() and self.state.nb_players(self.key[0])!=1):
             return self.immobile()
-        if(self.ball_zone()):
-            return self.marcher_vers(self.ball_position())
-        return self.aller_vers(self.ball_position()+self.state.ball.vitesse*5)   
+        #if(self.ball_zone()):
+         #   return self.marcher_vers(self.ball_position())
+        return self.aller_vers(self.ball_position()+self.state.ball.vitesse*7)   
     
         
     def shoot(self, but_position):
@@ -183,14 +131,15 @@ class Techniques(object):
     def defense_position(self):
         if(self.key[0]==1):
             if(self.defense_zone()):
-                return self.aller_vers_ball_def(self.ball_position()) + self.shoot(self.but_position())
+                return self.aller_vers_ball_def(self.ball_position()) + self.shoot(self.but_position())                
             else:
-                return self.aller_vers(Vector2D(30,self.state.ball.position.y))
+                return self.aller_vers(Vector2D(10,GAME_HEIGHT/2.)) 
         else:
             if(self.defense_zone()):
-                return self.aller_vers_ball_def(self.ball_position()) + self.shoot(self.but_position())
+                return self.aller_vers_ball_def(self.ball_position()) + self.shoot(self.but_position())              
             else:
-                return self.aller_vers(Vector2D(GAME_WIDTH-30,self.state.ball.position.y))
+                return self.aller_vers(Vector2D(GAME_WIDTH-10,GAME_HEIGHT/2.))
 
+                
     def __getattr__(self, name):
-        return getattr(self.Action, name)
+return getattr(self.Action, name)

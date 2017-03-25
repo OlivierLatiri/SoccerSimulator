@@ -1,6 +1,4 @@
-from soccersimulator import settings
 from soccersimulator import SoccerTeam, Simulation, Strategy, show_simu, Vector2D, SoccerAction
-from projet import Buteur
 from soccersimulator.settings import GAME_HEIGHT, GAME_WIDTH
 import numpy as np
 import logging
@@ -40,7 +38,7 @@ class ShootSearch(object):
         discr_step  : pas de discretisation du parametre
         nb_essais : nombre d'essais par parametre
     """
-    MAX_STEP = 40
+    MAX_STEP = 120
     def __init__(self):
         self.strat=ShootExpe() 
         team1 = SoccerTeam("test")
@@ -50,7 +48,7 @@ class ShootSearch(object):
         self.simu = Simulation(team1,team2,max_steps=1000000)
         self.simu.listeners+=self
         self.discr_step = 20
-        self.nb_essais = 20
+        self.nb_essais = 1
     def start(self,visu=True):
         """ demarre la visualisation avec ou sans affichage"""
         if visu :
@@ -71,18 +69,24 @@ class ShootSearch(object):
         self.but = 0
         self.cpt = 0
         #self.params = [x for x in  np.linspace(1,settings.maxPlayerShoot,self.discr_step)]
-        self.params = [0,1,2,3,4]
+        self.params = [0,1,2]
         self.idx=0
 
     def begin_round(self,team1,team2,state):
-        """ engagement : position random du joueur et de la balle """  
-        iposition=19
-        lxi, lxs, lyi, lys = limite_retion(iposition, 10)
+        """ engagement : position random du joueur et de la balle """ 
+        iposition=5
+        iposition1=43
+        lxi, lxs, lyi, lys = limite_retion(iposition, 10) 
+        lxi1, lxs1, lyi1, lys1 = limite_retion(iposition1, 10) 
         position = Vector2D(np.random.random()*(lxs-lxi)+lxi,
         	np.random.random()*(lys-lyi)+lyi)
+        position1 = Vector2D(np.random.random()*(lxs1-lxi1)+lxi1,
+        	np.random.random()*(lys1-lyi1)+lyi1)
+        vitesse1= Vector2D(45,10)
         self.simu.state.states[(1,0)].position = position.copy()
         self.simu.state.states[(1,0)].vitesse = Vector2D()
-        self.simu.state.ball.position = position.copy()
+        self.simu.state.ball.position = position1.copy()
+        self.simu.state.ball.vitesse = vitesse1.copy()
         self.strat.istrat =self.params[self.idx]
         self.last = self.simu.step
         #self.iposition = iposition
@@ -109,19 +113,17 @@ class ShootExpe(Strategy):
     def __init__(self,shoot=None):
         self.name = "simple action"
     def compute_strategy(self,state,id_team,id_player):
-	mystate = toolbox.MyState(state, id_team, id_player)
-	zone = toolbox.Zone(mystate)
-	action = toolbox.Action(zone)
-	if self.istrat == 0:
-		return action.tirer_max(mystate.but_position())
-	elif self.istrat == 1:
-		return action.tirer_max_moyen(mystate.but_position())
-	elif self.istrat== 2:
-		return action.tirer_moyen(mystate.but_position())
-  	elif self.istrat== 3:
-		return action.tirer_moyen_faible(mystate.but_position())
-	else:
-		return action.tirer_faible(mystate.but_position())
+        mystate = toolbox.MyState(state, id_team, id_player)
+        zone = toolbox.Zone(mystate)
+        action = toolbox.Action(zone)
+        technique=toolbox.Techniques(action)
+        if self.istrat == 0:
+            return technique.aller_vers_ball_1(mystate.ball_position())+action.tirer_moyen(mystate.but_position())
+        elif self.istrat == 1:
+            return technique.aller_vers_ball_2(mystate.ball_position())+action.tirer_moyen(mystate.but_position())
+        else:
+            return technique.aller_vers_ball_3(mystate.ball_position())+action.tirer_moyen(mystate.but_position())
+        
 
 expe = ShootSearch()
 expe.start()
